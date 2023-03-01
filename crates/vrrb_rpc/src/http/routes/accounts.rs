@@ -11,7 +11,6 @@ use serde_json::{json, Value};
 pub fn create_account_router() -> Router {
     Router::new()
         .route("/:id", get(get_account))
-        // .route("/:address", get(get_account_by_address))
         .route("/:id", put(update_account))
         // .route("/", post(create_account))
         .layer(Extension(String::from("account route")))
@@ -23,27 +22,6 @@ async fn get_account(Extension(state): Extension<String>) -> Json<Value> {
         "state": state,
     }))
 }
-
-// #[derive(Debug, Clone, Serialize, Deserialize)]
-// pub struct Address {
-//     pub address: String,
-// }
-
-// impl Address {
-//     pub fn new(address: String) -> Self {
-//         // let now = date::now();
-//         Self {
-//             address,
-//         }
-//     }
-// }
-
-// async fn get_account_by_address(Path(address): Path<String>) -> Json<Value> {
-//     let address = Address::new(address);
-//     let address_resp = serde_json::to_string(&address).unwrap();
-
-//     Json(json!(address_resp))
-// }
 
 // fn create_account() {
 //     todo!()
