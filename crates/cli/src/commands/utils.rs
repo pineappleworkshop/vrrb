@@ -7,17 +7,6 @@ use crate::{
     result::{CliError, Result},
 };
 
-// pub fn read_node_config_from_file(config_file_path: PathBuf) ->
-// crate::result::Result<RunOpts> {     let path_str =
-// config_file_path.to_str().unwrap_or_default();
-
-//     let node_config = RunOpts::from_file(path_str)
-//         .map_err(|err| CliError::Other(format!("failed to read config file:
-// {err}")))?;
-
-//     Ok(node_config)
-// }
-
 pub fn write_node_config_from_file(node_config: &NodeConfig) -> Result<()> {
     let node_config_dir = node_config.db_path();
     let node_config_path = node_config_dir.join("config.json");
