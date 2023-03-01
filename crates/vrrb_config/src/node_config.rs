@@ -4,15 +4,16 @@ use std::{
     time::Duration,
 };
 
+use config::{Config, ConfigError, File};
 use derive_builder::Builder;
 use primitives::{NodeId, NodeIdx, NodeType, DEFAULT_VRRB_DATA_DIR_PATH};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use vrrb_core::keypair::Keypair;
 
 use crate::bootstrap::BootstrapConfig;
 
-#[derive(Builder, Debug, Clone, Deserialize)]
+#[derive(Builder, Debug, Clone, Deserialize, Serialize)]
 pub struct NodeConfig {
     /// UUID that identifies each node
     pub id: NodeId,
@@ -63,8 +64,10 @@ pub struct NodeConfig {
     pub preload_mock_state: bool,
 
     /// Bootstrap configuration
+    #[serde(skip_serializing)]
     pub bootstrap_config: Option<BootstrapConfig>,
 
+    #[serde(skip_serializing)]
     pub keypair: Keypair,
 
     #[builder(default = "false")]
@@ -108,6 +111,27 @@ impl NodeConfig {
             keypair: self.keypair.clone(),
             ..other
         }
+    }
+
+    pub fn from_file(config_path: &str) -> std::result::Result<Self, ConfigError> {
+        let s = Config::builder()
+            // .set_default("id", Uuid::new_v4().to_string())?
+            // .set_default("data_dir", DEFAULT_VRRB_DATA_DIR_PATH)?
+            // .set_default("db_path", DEFAULT_VRRB_DB_PATH)?
+            // .set_default("node_type", "full")?
+            // .set_default("jsonrpc_api_address", DEFAULT_JSONRPC_ADDRESS)?
+            // .set_default("http_api_address", DEFAULT_OS_ASSIGNED_PORT_ADDRESS)?
+            // .set_default("http_api_title", "Node API")?
+            // .set_default("http_api_version", "1.0.1")?
+            // .set_default("bootstrap_node_addresses", default_bootstrap_addresses)?
+            // .set_default("preload_mock_state", false)?
+            // .set_default("debug_config", false)?
+            // .set_default("bootstrap", false)?
+            // .set_default("dettached", false)?
+            .add_source(File::with_name(config_path))
+            .build()?;
+
+        Ok(s.try_deserialize().unwrap_or_default())
     }
 }
 
