@@ -9,12 +9,18 @@ use storage::{
 use telemetry::info;
 use theater::{Actor, ActorImpl};
 use tokio::{
-    sync::{broadcast::Receiver, mpsc::UnboundedSender},
+    sync::{
+        broadcast::{channel, Receiver},
+        mpsc::UnboundedSender,
+    },
     task::JoinHandle,
 };
 use vrrb_config::NodeConfig;
 use vrrb_core::event_router::{DirectedEvent, Event, EventRouter, Topic};
-use vrrb_rpc::rpc::{JsonRpcServer, JsonRpcServerConfig};
+use vrrb_rpc::{
+    http::{HttpApiServer, HttpApiServerConfig},
+    rpc::{JsonRpcServer, JsonRpcServerConfig},
+};
 
 use self::{
     broadcast_module::{BroadcastModule, BroadcastModuleConfig},
@@ -46,8 +52,10 @@ pub async fn setup_runtime_components(
     validator_events_rx: Receiver<Event>,
     miner_events_rx: Receiver<Event>,
     jsonrpc_events_rx: Receiver<Event>,
+    http_events_rx: Receiver<Event>,
 ) -> Result<(
     NodeConfig,
+    Option<JoinHandle<Result<()>>>,
     Option<JoinHandle<Result<()>>>,
     Option<JoinHandle<Result<()>>>,
     Option<JoinHandle<Result<()>>>,
@@ -114,9 +122,14 @@ pub async fn setup_runtime_components(
     )
     .await?;
 
+    let (http_server_handle, resolved_http_server_addr) =
+        setup_http_api_server(http_events_rx).await?;
+
     config.jsonrpc_server_address = resolved_jsonrpc_server_addr;
+    config.http_api_address = resolved_http_server_addr;
 
     info!("JSON-RPC server address: {}", config.jsonrpc_server_address);
+    info!("HTTP server address: {}", config.http_api_address);
 
     // TODO: make nodes start with some preconfigured state
     let txn_validator_handle = setup_validation_module(
@@ -136,6 +149,7 @@ pub async fn setup_runtime_components(
         jsonrpc_server_handle,
         txn_validator_handle,
         miner_handle,
+        http_server_handle,
     ))
 }
 
@@ -261,6 +275,36 @@ async fn setup_rpc_api_server(
     }));
 
     Ok((jsonrpc_server_handle, resolved_jsonrpc_server_addr))
+}
+
+async fn setup_http_api_server(
+    mut http_events_rx: Receiver<Event>,
+) -> Result<(Option<JoinHandle<Result<()>>>, SocketAddr)> {
+    let config = HttpApiServerConfig {
+        address: "127.0.0.1:0".into(),
+        api_title: "Node HTTP API".into(),
+        api_version: "1.0".into(),
+        server_timeout: None,
+        tls_config: None,
+    };
+
+    let api = HttpApiServer::new(config).unwrap();
+    let resolved_http_server_address = api.address().unwrap();
+    info!("HTTP server address: {}", resolved_http_server_address);
+
+    let (_ctrl_tx, mut ctrl_rx) = channel(1);
+    let _server_handle = api.start(&mut ctrl_rx).await.unwrap();
+
+    let server_handle = Some(tokio::spawn(async move {
+        if let Ok(evt) = http_events_rx.recv().await {
+            if let Event::Stop = evt {
+                return Ok(());
+            }
+        }
+        Ok(())
+    }));
+
+    Ok((server_handle, resolved_http_server_address))
 }
 
 fn setup_validation_module(

@@ -19,7 +19,10 @@ use vrrb_core::{
     keypair::{self, read_keypair_file, write_keypair_file, Keypair},
 };
 
-use crate::result::{CliError, Result};
+use crate::{
+    commands::utils::write_node_config_from_file,
+    result::{CliError, Result},
+};
 
 const DEFAULT_OS_ASSIGNED_PORT_ADDRESS: &str = "127.0.0.1:0";
 const DEFAULT_JSONRPC_ADDRESS: &str = "127.0.0.1:9293";
@@ -263,6 +266,9 @@ pub async fn run(args: RunOpts) -> Result<()> {
     if args.debug_config {
         dbg!(&node_config);
     }
+
+    write_node_config_from_file(&node_config)
+        .map_err(|err| CliError::Other(format!("unable to write node config: {err}")))?;
 
     if args.dettached {
         run_dettached(node_config).await

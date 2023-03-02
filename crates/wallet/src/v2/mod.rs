@@ -308,8 +308,7 @@ impl Wallet {
         let account = Account::new(public_key);
         let address = Address::new(public_key);
 
-        let result = self
-            .client
+        self.client
             .create_account(address.clone(), account.clone())
             .await
             .map_err(|err| WalletError::Custom(err.to_string()))?;

@@ -66,6 +66,7 @@ pub struct Node {
     miner_handle: Option<JoinHandle<Result<()>>>,
     txn_validator_handle: Option<JoinHandle<Result<()>>>,
     jsonrpc_server_handle: Option<JoinHandle<Result<()>>>,
+    http_server_handle: Option<JoinHandle<Result<()>>>,
 }
 
 impl Node {
@@ -88,6 +89,7 @@ impl Node {
         let validator_events_rx = event_router.subscribe(&Topic::Consensus)?;
         let miner_events_rx = event_router.subscribe(&Topic::Consensus)?;
         let jsonrpc_events_rx = event_router.subscribe(&Topic::Control)?;
+        let http_events_rx = event_router.subscribe(&Topic::Control)?;
 
         let (
             updated_config,
@@ -98,6 +100,7 @@ impl Node {
             jsonrpc_server_handle,
             txn_validator_handle,
             miner_handle,
+            http_server_handle,
         ) = setup_runtime_components(
             &config,
             events_tx.clone(),
@@ -108,6 +111,7 @@ impl Node {
             validator_events_rx,
             miner_events_rx,
             jsonrpc_events_rx,
+            http_events_rx,
         )
         .await?;
 
@@ -132,6 +136,7 @@ impl Node {
             txn_validator_handle,
             miner_handle,
             keypair,
+            http_server_handle,
         })
     }
 
@@ -174,6 +179,11 @@ impl Node {
         if let Some(handle) = self.jsonrpc_server_handle {
             handle.await??;
             info!("rpc server shut down");
+        }
+
+        if let Some(handle) = self.http_server_handle {
+            handle.await??;
+            info!("http server shut down");
         }
 
         self.event_router_handle.await?;
