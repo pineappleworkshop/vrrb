@@ -292,8 +292,8 @@ async fn setup_http_api_server(
     let resolved_http_server_address = api.address().unwrap();
     info!("HTTP server address: {}", resolved_http_server_address);
 
-    let (ctrl_tx, mut ctrl_rx) = channel(1);
-    let server_handle = api.start(&mut ctrl_rx).await.unwrap();
+    let (_ctrl_tx, mut ctrl_rx) = channel(1);
+    let _server_handle = api.start(&mut ctrl_rx).await.unwrap();
 
     let server_handle = Some(tokio::spawn(async move {
         if let Ok(evt) = http_events_rx.recv().await {

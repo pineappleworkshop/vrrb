@@ -32,10 +32,11 @@ impl Debug for HttpApiServer {
 
 impl HttpApiServer {
     pub fn new(config: HttpApiServerConfig) -> Result<Self> {
-        let address = &config.address.parse().unwrap();
+        let mut address: SocketAddr = config.address.parse().unwrap();
+        address.set_port(8080);
 
         let router_config = HttpApiRouterConfig {
-            address: *address,
+            address,
             api_title: config.api_title.clone(),
             api_version: config.api_version.clone(),
             server_timeout: config.server_timeout,

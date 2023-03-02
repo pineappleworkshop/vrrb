@@ -12,7 +12,7 @@ pub fn create_account_router() -> Router {
     Router::new()
         .route("/:id", get(get_account))
         .route("/:id", put(update_account))
-        // .route("/", post(create_account))
+        .route("/", post(create_account))
         .layer(Extension(String::from("account route")))
 }
 
@@ -23,9 +23,9 @@ async fn get_account(Extension(state): Extension<String>) -> Json<Value> {
     }))
 }
 
-// fn create_account() {
-//     todo!()
-// }
+async fn create_account() {
+    todo!()
+}
 
 async fn update_account() {
     todo!()
